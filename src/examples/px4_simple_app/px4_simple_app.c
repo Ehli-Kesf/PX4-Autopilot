@@ -51,12 +51,20 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_attitude.h>
 
 __EXPORT int px4_simple_app_main(int argc, char *argv[]);
 
+int rust_add(int a, int b);
+
 int px4_simple_app_main(int argc, char *argv[])
 {
-	PX4_INFO("Hello Sky!");
+	PX4_INFO("Hello Sky miii!");
+	int c = rust_add(15, 10);
+	PX4_INFO("Esselamu aleykum, 25 olması lazım ama timestamp ile ekledim he he: %d", c);
+
+	const struct orb_metadata* vehicle_attitude_metadata = ORB_ID(vehicle_attitude);
+	PX4_INFO("vehicle attitude metadata name: %s!", vehicle_attitude_metadata->o_name);
 
 	/* subscribe to vehicle_acceleration topic */
 	int sensor_sub_fd = orb_subscribe(ORB_ID(vehicle_acceleration));

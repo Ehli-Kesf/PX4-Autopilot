@@ -87,6 +87,7 @@ rules.ninja
 **/*.a
 **/*.px4mod
 **/*.stamp
+**/target
 /coverage*
 /functional-*
 /generated_params/

@@ -1,0 +1,9 @@
+[workspace]
+members = ["macros", "px4_simple_app"]
+resolver = "2"
+
+[profile.release]
+panic = "abort"
+opt-level = 3
+lto = true
+debug = false

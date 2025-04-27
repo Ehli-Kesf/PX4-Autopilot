@@ -1,0 +1,14 @@
+[package]
+name = "px4_simple_app"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+log = "0.4.22"
+macros = { path = "../macros" }
+
+[build-dependencies]
+bindgen = "0.71.1" # veya daha yeni bir sürüm
