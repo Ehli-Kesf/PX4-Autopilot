@@ -20,9 +20,7 @@ pub mod logging;
 pub mod publish;
 pub mod subscribe;
 
-#[px4_message(
-    "/home/abdulmelik/dev/ehlikesf_ws/PX4-Autopilot/msg/versioned/VehicleGlobalPosition.msg"
-)]
+#[px4_message("../../../../msg/versioned/VehicleGlobalPosition.msg")]
 pub struct VehicleGlobalPosition;
 
 #[no_mangle]
