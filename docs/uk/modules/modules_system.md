@@ -62,7 +62,7 @@ The `CAMERA_IMAGE_CAPTURED` message is then emitted (by streaming code) followin
 ### Імплементація
 
 `CameraTrigger` topics are published by the `camera_trigger` module (`feedback` field set `false`)
-when image capture is triggered, and may also be published by the  `camera_capture` driver
+when image capture is triggered, and may also be published by the `camera_capture` driver
 (with `feedback` field set `true`) if the camera capture pin is activated.
 
 The `camera_feedback` module subscribes to `CameraTrigger`.
@@ -146,7 +146,7 @@ commander <command> [arguments...]
 
    pair
 
-   lockdown
+   termination
      on|off      Turn lockdown on or off
 
    set_ekf_origin
@@ -281,6 +281,33 @@ gyro_fft <command> [arguments...]
    status        print status info
 ```
 
+## hardfault_stream
+
+Source: [modules/hardfault_stream](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/hardfault_stream)
+
+### Опис
+
+Background process that streams the latest hardfault via MAVLink.
+
+The module is especially useful when it is necessary to quickly push a hard fault to the ground station.
+This is useful in cases where the drone experiences a hard fault during flight.
+It ensures that some data is retained in case the permanent storage is destroyed during a crash.
+
+To reliably stream, it is necessary to send the STATUSTEXT message via MAVLink at a
+high enough frequency. The recommended frequency is 10 Hz or higher.
+
+### Usage {#hardfault_stream_usage}
+
+```
+hardfault_stream <command> [arguments...]
+ Commands:
+   start         Start the background task
+
+   stop
+
+   status        print status info
+```
+
 ## heater
 
 Source: [drivers/heater](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/heater)
@@ -347,7 +374,7 @@ CONFIG_DRIVERS_RPM_CAPTURE=y
 Additionally, to enable the module:
 
 - Set [ICE_EN](../advanced_config/parameter_reference.md#ICE_EN)
- to true and adjust the other `ICE_` module parameters according to your needs.
+  to true and adjust the other `ICE_` module parameters according to your needs.
 - Set [RPM_CAP_ENABLE](../advanced_config/parameter_reference.md#RPM_CAP_ENABLE) to true.
 
 The module outputs control signals for ignition, throttle, and choke,
@@ -367,8 +394,10 @@ The state machine:
 
 - Checks if [Rpm.msg](../msg_docs/Rpm.md) is updated to know if the engine is running
 - Allows for user inputs from:
- - AUX{N}
- - Arming state in [VehicleStatus.msg](../msg_docs/VehicleStatus.md)
+  - Manual control AUX
+  - Arming state in [VehicleStatus.msg](../msg_docs/VehicleStatus.md)
+- In the state "Stopped" the throttle is set to NAN, which by definition will set the
+  throttle output to the disarmed value configured for the specific output.
 
 The module publishes [InternalCombustionEngineControl.msg](../msg_docs/InternalCombustionEngineControl.md).
 
@@ -484,7 +513,7 @@ The normal log is always a superset of the mission log.
 The implementation uses two threads:
 
 - The main thread, running at a fixed rate (or polling on a topic if started with -p) and checking for
- data updates
+  data updates
 - The writer thread, writing data to the file
 
 In between there is a write buffer with configurable size (and another fixed-size buffer for
@@ -611,8 +640,8 @@ The `show` option will display the network settings in `net.cfg` to the console.
 
 ### Приклади
 
-$ netman save           # Save the parameters to the SD card.
-$ netman show           # display current settings.
+$ netman save # Save the parameters to the SD card.
+$ netman show # display current settings.
 $ netman update -i eth0 # do an update
 
 ### Usage {#netman_usage}
@@ -688,9 +717,9 @@ There are 2 environment variables used for configuration: `replay`, which must b
 the log file to be replayed. The second is the mode, specified via `replay_mode`:
 
 - `replay_mode=ekf2`: specific EKF2 replay mode. It can only be used with the ekf2 module, but allows the replay
- to run as fast as possible.
+  to run as fast as possible.
 - Generic otherwise: this can be used to replay any module(s), but the replay will be done with the same speed as the
- log was recorded.
+  log was recorded.
 
 The module is typically used together with uORB publisher rules, to specify which messages should be replayed.
 The replay module will just publish all messages that are found in the log. It also applies the parameters from
@@ -842,12 +871,12 @@ it into a more usable form, and publishes it for the rest of the system.
 The provided functionality includes:
 
 - Read the output from the sensor drivers (`SensorGyro`, etc.).
- If there are multiple of the same type, do voting and failover handling.
- Then apply the board rotation and temperature calibration (if enabled). And finally publish the data; one of the
- topics is `SensorCombined`, used by many parts of the system.
+  If there are multiple of the same type, do voting and failover handling.
+  Then apply the board rotation and temperature calibration (if enabled). And finally publish the data; one of the
+  topics is `SensorCombined`, used by many parts of the system.
 - Make sure the sensor drivers get the updated calibration parameters (scale & offset) when the parameters change or
- on startup. The sensor drivers use the ioctl interface for parameter updates. For this to work properly, the
- sensor drivers must already be running when `sensors` is started.
+  on startup. The sensor drivers use the ioctl interface for parameter updates. For this to work properly, the
+  sensor drivers must already be running when `sensors` is started.
 - Do sensor consistency checks and publish the `SensorsStatusImu` topic.
 
 ### Імплементація

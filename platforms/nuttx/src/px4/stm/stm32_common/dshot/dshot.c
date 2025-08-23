@@ -206,7 +206,7 @@ static void init_timers_dma_up(void)
 		timer_configs[timer_index].dma_handle = stm32_dmachannel(io_timers[timer_index].dshot.dma_map_up);
 
 		if (timer_configs[timer_index].dma_handle == NULL) {
-			PX4_DEBUG("Failed to allocate Timer %u DMA UP", timer_index);
+			PX4_WARN("Failed to allocate Timer %u DMA UP", timer_index);
 			continue;
 		}
 
@@ -214,12 +214,16 @@ static void init_timers_dma_up(void)
 		timer_configs[timer_index].initialized = true;
 	}
 
-	// Free the allocated DMA channels
-	for (uint8_t timer_index = 0; timer_index < MAX_IO_TIMERS; timer_index++) {
-		if (timer_configs[timer_index].dma_handle != NULL) {
-			stm32_dmafree(timer_configs[timer_index].dma_handle);
-			timer_configs[timer_index].dma_handle = NULL;
-			PX4_INFO("Freed DMA UP Timer Index %u", timer_index);
+	// Bidirectional DShot will free/allocate DMA stream on every update event. This is required
+	// in order to reconfigure the DMA stream between Timer Burst and CaptureCompare.
+	if (_bidirectional) {
+		// Free the allocated DMA channels
+		for (uint8_t timer_index = 0; timer_index < MAX_IO_TIMERS; timer_index++) {
+			if (timer_configs[timer_index].dma_handle != NULL) {
+				stm32_dmafree(timer_configs[timer_index].dma_handle);
+				timer_configs[timer_index].dma_handle = NULL;
+				PX4_INFO("Freed DMA UP Timer Index %u", timer_index);
+			}
 		}
 	}
 }
@@ -341,8 +345,15 @@ void up_dshot_trigger()
 
 			io_timer_set_dshot_burst_mode(timer_index, _dshot_frequency, channel_count);
 
-			// Allocate DMA
-			if (timer_configs[timer_index].dma_handle == NULL) {
+			if (_bidirectional) {
+				// Deallocate DMA from previous transaction
+				if (timer_configs[timer_index].dma_handle != NULL) {
+					stm32_dmastop(timer_configs[timer_index].dma_handle);
+					stm32_dmafree(timer_configs[timer_index].dma_handle);
+					timer_configs[timer_index].dma_handle = NULL;
+				}
+
+				// Allocate DMA
 				timer_configs[timer_index].dma_handle = stm32_dmachannel(io_timers[timer_index].dshot.dma_map_up);
 
 				if (timer_configs[timer_index].dma_handle == NULL) {
@@ -502,11 +513,8 @@ static void capture_complete_callback(void *arg)
 	// Disable capture DMA
 	io_timer_capture_dma_req(timer_index, capture_channel, false);
 
-	if (timer_configs[timer_index].dma_handle != NULL) {
-		stm32_dmastop(timer_configs[timer_index].dma_handle);
-		stm32_dmafree(timer_configs[timer_index].dma_handle);
-		timer_configs[timer_index].dma_handle = NULL;
-	}
+	// Stop DMA (should already be finished)
+	stm32_dmastop(timer_configs[timer_index].dma_handle);
 
 	// Re-initialize all output channels on this timer
 	for (uint8_t output_channel = 0; output_channel < MAX_TIMER_IO_CHANNELS; output_channel++) {
@@ -553,7 +561,7 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 
 	} else {
 		// Convert the period to eRPM
-		_erpms[output_channel] = (1000000 * 60) / period;
+		_erpms[output_channel] = (1000000 * 60 / 100 + period / 2) / period;
 	}
 
 	// We set it ready anyway, not to hold up other channels when used in round robin.
@@ -561,11 +569,11 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 }
 
 /**
-* bits  1-11    - throttle value (0-47 are reserved, 48-2047 give 2000 steps of throttle resolution)
+* bits  1-11    - throttle value (0-47 are reserved for commands, 48-2047 give 2000 steps of throttle resolution)
 * bit   12      - dshot telemetry enable/disable
 * bits  13-16   - XOR checksum
 **/
-void dshot_motor_data_set(unsigned channel, uint16_t throttle, bool telemetry)
+void dshot_motor_data_set(unsigned channel, uint16_t data, bool telemetry)
 {
 	uint8_t timer_index = timer_io_channels[channel].timer_index;
 	uint8_t timer_channel_index = timer_io_channels[channel].timer_channel - 1;
@@ -578,7 +586,7 @@ void dshot_motor_data_set(unsigned channel, uint16_t throttle, bool telemetry)
 	uint16_t packet = 0;
 	uint16_t checksum = 0;
 
-	packet |= throttle << DSHOT_THROTTLE_POSITION;
+	packet |= data << DSHOT_THROTTLE_POSITION;
 	packet |= ((uint16_t)telemetry & 0x01) << DSHOT_TELEMETRY_POSITION;
 
 	uint16_t csum_data = packet;
