@@ -1,0 +1,120 @@
+#!/bin/sh
+#
+# @name Ehli Kesf Ebabil V1
+#
+# @type Quadrotor x
+# @class Copter
+#
+# @maintainer Muhammet Halak <halakmuhammet145@gmail.com>
+#
+# @board px4_fmu-v2 exclude
+# @board bitcraze_crazyflie exclude
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+
+# =========================================================
+# IMU / FILTERS
+# =========================================================
+
+param set-default IMU_GYRO_CUTOFF 30
+
+
+# =========================================================
+# MULTICOPTER RATE CONTROLLER
+# =========================================================
+
+param set-default MC_ROLLRATE_P   0.14
+param set-default MC_PITCHRATE_P  0.14
+
+param set-default MC_ROLLRATE_I   0.3
+param set-default MC_PITCHRATE_I  0.3
+
+param set-default MC_ROLLRATE_D   0.004
+param set-default MC_PITCHRATE_D  0.004
+
+
+# =========================================================
+# BATTERY CONFIGURATION
+# =========================================================
+
+param set-default BAT1_A_PER_V   15.3910
+param set-default BAT1_N_CELLS   3
+
+
+# =========================================================
+# SAFETY / POWER
+# =========================================================
+
+param set-default CBRK_SUPPLY_CHK 894281
+param set-default COM_POWER_COUNT 0
+
+
+# =========================================================
+# RC / MAVLINK / TELEMETRY
+# =========================================================
+
+param set-default COM_RC_IN_MODE   1
+
+# MAVLink Instance 1 (Disabled / External control)
+param set-default MAV_1_CONFIG    0
+
+# Telemetry ports high-speed
+param set-default SER_TEL1_BAUD   921600
+param set-default SER_TEL2_BAUD   921600
+
+# Micro XRCE-DDS (ROS2 / DDS)
+param set-default UXRCE_DDS_CFG   101
+
+
+# =========================================================
+# PWM OUTPUT CONFIGURATION
+# =========================================================
+
+param set-default PWM_MAIN_FUNC1  104
+param set-default PWM_MAIN_FUNC2  101
+param set-default PWM_MAIN_FUNC7  102
+param set-default PWM_MAIN_FUNC8  103
+
+param set-default PWM_MAIN_MIN1   1100
+param set-default PWM_MAIN_MIN2   1100
+param set-default PWM_MAIN_MIN7   1100
+param set-default PWM_MAIN_MIN8   1100
+
+param set-default PWM_MAIN_MAX1   1900
+param set-default PWM_MAIN_MAX2   1900
+param set-default PWM_MAIN_MAX7   1900
+param set-default PWM_MAIN_MAX8   1900
+
+param set-default PWM_MAIN_TIM0   -3
+param set-default PWM_MAIN_TIM2   -3
+
+
+# =========================================================
+# CONTROL ALLOCATION - SQUARE QUAD X
+# =========================================================
+
+param set-default CA_ROTOR_COUNT 4
+
+param set-default CA_ROTOR0_PX   1
+param set-default CA_ROTOR0_PY   1
+
+param set-default CA_ROTOR1_PX  -1
+param set-default CA_ROTOR1_PY  -1
+
+param set-default CA_ROTOR2_PX   1
+param set-default CA_ROTOR2_PY  -1
+param set-default CA_ROTOR2_KM  -0.05
+
+param set-default CA_ROTOR3_PX  -1
+param set-default CA_ROTOR3_PY   1
+param set-default CA_ROTOR3_KM  -0.05
+
+
+# =========================================================
+# MAGNETOMETER
+# =========================================================
+
+# CAL_MAG0_ROT [63,136] → 27
+param set-default CAL_MAG0_ROT 27
