@@ -22,14 +22,6 @@ on:
     paths-ignore:
       - 'docs/**'
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-permissions:
-  contents: write
-  actions: read
-
 jobs:
   group_targets:
     name: Scan for Board Targets

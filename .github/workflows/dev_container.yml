@@ -12,27 +12,9 @@ on:
   pull_request:
     branches:
       - '**'
-    paths:
-      - '.github/workflows/dev_container.yml'
-      - 'Tools/setup/ubuntu.sh'
-      - 'Tools/setup/requirements.txt'
-      - 'Tools/setup/Dockerfile'
-      - 'Tools/setup/docker-entrypoint.sh'
-  workflow_dispatch:
-    inputs:
-      px4_version:
-        description: 'Container tag (e.g. v1.16.0)'
-        required: true
-        type: string
-      deploy_to_registry:
-        description: 'Whether to push built images to the registry'
-        required: false
-        type: boolean
-        default: false
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+    paths-ignore:
+      - 'docs/**'
+      - '.github/**'
 
 jobs:
   setup:
