@@ -58,6 +58,7 @@ param set-default COM_POWER_COUNT 0
 param set-default COM_RC_IN_MODE   1
 
 # MAVLink Instance 1 (Disabled / External control)
+param set-default MAV_0_CONFIG 	  0
 param set-default MAV_1_CONFIG    0
 
 # Telemetry ports high-speed
