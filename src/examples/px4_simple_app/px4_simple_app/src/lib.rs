@@ -4,7 +4,7 @@
 // lib.rs veya main.rs başında
 // extern crate alloc;
 
-use pictorus_px4::message_impls::VehicleLocalPosition;
+use pictorus_px4::message_impls::*;
 
 use panic_halt as _;
 
@@ -39,11 +39,11 @@ pub extern "C" fn rust_main() -> isize {
     unsafe {
         logging::init();
     };
-    log::info!("merhaba dunya form rust");
+    log::info!("selamunleykum dunya form rust 1");
 
-    let mut sub = Subscriber::<VehicleLocalPosition>::new().unwrap();
-    for _ in 0..1000 {
-        if let Ok(msg) = sub.next_timeout(1) {
+    let mut sub = Subscriber::<SensorAccel>::new().unwrap();
+    for _ in 0..100 {
+        if let Ok(msg) = sub.next_timeout(50) {
             log::info!("local pos geldi {}", msg.timestamp);
         } else {
             log::info!("gelmedi");

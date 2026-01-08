@@ -63,34 +63,6 @@ int rust_px4_poll(px4_pollfd_struct_t *fds, unsigned int nfds, int timeout) {
 	return px4_poll(fds, nfds, timeout);
 }
 
-// SITL derlemesinde bu blok otomatik olarak silinir, çakışma olmaz.
-// #if defined(__PX4_NUTTX)
-
-//     #include <poll.h>
-
-//     // Macro çakışmasını önle
-//     #ifdef px4_poll
-//     #undef px4_poll
-//     #endif
-
-//     // Wrapper fonksiyonu tanımla
-//     __EXPORT int px4_poll(px4_pollfd_struct_t *fds, unsigned int nfds, int timeout) {
-//         return poll((struct pollfd *)fds, (nfds_t)nfds, timeout);
-//     }
-
-// #endif
-
-// #ifdef px4_poll
-// #undef px4_poll
-// #endif
-
-// // 2. Şimdi gerçek "px4_poll" fonksiyonunu tanımlıyoruz.
-// // Rust artık bu ismi gerçek bir fonksiyon olarak bulabilecek.
-// __EXPORT int px4_poll(px4_pollfd_struct_t *fds, unsigned int nfds, int timeout) {
-//     // İçeride sistemin orijinal poll fonksiyonunu çağırıyoruz.
-//     return poll((struct pollfd *)fds, (nfds_t)nfds, timeout);
-// }
-
 int px4_simple_app_main(int argc, char *argv[])
 {
 	// PX4_INFO("Hello Sky miii!");

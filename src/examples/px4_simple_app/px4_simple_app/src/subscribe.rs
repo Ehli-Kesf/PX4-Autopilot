@@ -1,13 +1,22 @@
-use core::ffi::{c_int, c_short, c_uint, c_void};
+#[cfg(not(target_os = "none"))]
+use core::ffi::c_ushort;
+
+#[cfg(target_os = "none")] // Genelde gömülü sistemler "none" olarak geçer
+use core::ffi::c_uint;
+
+use core::ffi::{c_int, c_void};
 
 use pictorus_px4::message_impls::Topic;
 use px4_msgs_sys::orb::orb_copy;
 
-const POLLIN: c_short = 0x01;
-
 // PX4'teki typedef'lere karşılık gelen tipler
 // Eğer C tarafında short ise burayı u16 yapın, ama genelde u32'dir.
-pub type Px4PollEvent = c_short;
+#[cfg(target_os = "none")] // Genelde gömülü sistemler "none" olarak geçer
+pub type Px4PollEvent = c_uint;
+#[cfg(not(target_os = "none"))] // SITL (Linux/Mac)
+pub type Px4PollEvent = c_ushort;
+
+const POLLIN: Px4PollEvent = 0x01;
 
 #[repr(C)]
 #[derive(Clone, Copy, Default)]
