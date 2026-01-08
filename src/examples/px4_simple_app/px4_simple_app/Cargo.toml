@@ -1,0 +1,20 @@
+[package]
+name = "px4_simple_app"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+log = { version = "0.4.22", default-features = false }
+# macros = { path = "../macros" }
+px4-msgs-sys = { path = "../px4-msgs-sys"}
+pictorus-px4 = { path = "../pictorus-px4"}
+panic-halt = "1.0.0"
+# embedded-alloc = { version = "0.5.0", default-features = false }
+heapless = "0.8"
+
+
+[build-dependencies]
+bindgen = "0.71.1" # veya daha yeni bir sürüm

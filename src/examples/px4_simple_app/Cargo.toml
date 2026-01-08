@@ -1,0 +1,12 @@
+[workspace]
+members = ["px4_simple_app"]
+resolver = "2"
+
+[profile.release]
+codegen-units = 1
+debug = false        # Debug sembollerini tamamen kapat
+debug-assertions = false
+overflow-checks = false
+lto = true
+# opt-level = "s"      # "s" veya "z"
+panic = "abort"
