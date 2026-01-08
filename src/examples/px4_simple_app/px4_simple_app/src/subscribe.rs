@@ -25,7 +25,8 @@ pub struct PollFd {
 }
 
 unsafe extern "C" {
-    fn px4_poll(fds: *mut PollFd, nfds: core::ffi::c_uint, timeout: core::ffi::c_int) -> c_int;
+    fn rust_px4_poll(fds: *mut PollFd, nfds: core::ffi::c_uint, timeout: core::ffi::c_int)
+    -> c_int;
 }
 
 pub struct Subscriber<T: Topic> {
@@ -67,7 +68,7 @@ impl<T: Topic> Subscriber<T> {
         };
 
         // px4_poll ile işletim sistemine "beni beklet" diyoruz
-        let ret = unsafe { px4_poll(&mut pfd, 1, timeout_ms) };
+        let ret = unsafe { rust_px4_poll(&mut pfd, 1, timeout_ms) };
 
         // let ret = 0;
         if ret == 0 {
