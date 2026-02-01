@@ -361,3 +361,5 @@ fi
 
 mavlink boot_complete
 replay trystart
+ahrar
+# px4_simple_app
