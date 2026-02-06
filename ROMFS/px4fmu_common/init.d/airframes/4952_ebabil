@@ -62,11 +62,11 @@ param set-default MAV_0_CONFIG 	  0
 param set-default MAV_1_CONFIG    0
 
 # Telemetry ports high-speed
-param set-default SER_TEL1_BAUD   921600
-param set-default SER_TEL2_BAUD   921600
+param set-default SER_TEL1_BAUD   57600
+param set-default SER_TEL2_BAUD   57600
 
 # Micro XRCE-DDS (ROS2 / DDS)
-param set-default UXRCE_DDS_CFG   101
+param set-default UXRCE_DDS_CFG   0
 
 
 # =========================================================
