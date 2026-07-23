@@ -175,6 +175,7 @@ void TECSAltitudeReferenceModel::update(const float dt, const AltitudeReferenceS
 	if (!PX4_ISFINITE(setpoint.alt) && !PX4_ISFINITE(setpoint.alt_rate)) {
 		// neither altitude nor altitude rate is set - reset to current altitude
 		_velocity_control_traj_generator.reset(0.f, 0, current_alt);
+		_alt_control_traj_generator.reset(0.f, 0, current_alt);
 		altitude_setpoint = current_alt;
 
 	} else if (PX4_ISFINITE(setpoint.alt_rate)) {
