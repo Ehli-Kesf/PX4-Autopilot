@@ -259,7 +259,6 @@ int DShot::handle_new_telemetry_data(const int telemetry_index, const DShotTelem
 void DShot::publish_esc_status(void)
 {
 	esc_status_s &esc_status = esc_status_pub.get();
-	int telemetry_index = 0;
 
 	// clear data of the esc that are offline
 	for (int index = 0; (index < _last_telemetry_index); index++) {
@@ -282,8 +281,6 @@ void DShot::publish_esc_status(void)
 				} else {
 					esc_status.esc_online_flags &= ~(1 << i);
 				}
-
-				++telemetry_index;
 			}
 		}
 	}
