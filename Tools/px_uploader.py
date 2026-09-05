@@ -352,9 +352,24 @@ class uploader:
         # in that it is 233% off.
         try:
             self.port.baudrate = self.baudrate_bootloader * 2.33
-        except NotImplementedError as e:
-            # This error can occur because pySerial on Windows does not support odd baudrates
+        except Exception as e:
+            # Bu prob "imkansiz" bir baud hizi verip cihazin yine cevap verip
+            # vermedigine bakar (USB CDC baud'u yok sayar, gercek UART sayar).
+            # Prob'un KENDISI basarisiz olabilir ve bu bir hata degildir:
+            #   * Windows : pySerial tek sayili baud hizlarini desteklemez
+            #               -> NotImplementedError
+            #   * Linux   : modern cekirdekler CDC-ACM uzerinde bu hizi reddeder
+            #               -> termios.error: (22, 'Invalid argument')
+            #               (termios.error OSError'dan TUREMEZ, dogrudan
+            #                Exception'dandir; dar bir except onu kacirir)
+            # Her iki durumda da yapilacak sey ayni: prob edilemedi, USB varsay.
             print(f"{e} -> could not check for FTDI device, assuming USB connection")
+            # pySerial hiz ayarini once nesnede yapip sonra porta uyguluyor;
+            # uygulama patlayinca ikisi ayrisir. Bilinen degere geri cek.
+            try:
+                self.port.baudrate = self.baudrate_bootloader
+            except Exception:
+                pass
             return
 
         self.__send(uploader.GET_SYNC +

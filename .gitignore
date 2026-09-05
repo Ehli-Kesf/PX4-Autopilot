@@ -109,3 +109,7 @@ src/systemcmds/topic_listener/listener_generated.cpp
 # colcon
 log/
 keys/
+
+# ehlikesf: kart config label symlink'i
+# (kaynak ehlikesf reposunda, scripts/px4-build.sh tarafindan kurulur)
+boards/*/*/ehlikesf.px4board
