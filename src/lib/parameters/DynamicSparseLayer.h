@@ -46,35 +46,24 @@ public:
 	// Heap'li kurucu. malloc kurucuda değil, ilk store()'da: statik kurucular
 	// SRAM4 eklenmeden önce çalışıyor.
 	DynamicSparseLayer(ParamLayer *parent, int n_prealloc = 32, int n_grow = 4) : ParamLayer(parent),
-		_n_slots(0), _n_grow(n_grow > 0 ? n_grow : 1), _n_prealloc(n_prealloc > 0 ? n_prealloc : 1),
-		_owned(true)
+		_n_slots(0), _n_grow(n_grow > 0 ? n_grow : 1), _n_prealloc(n_prealloc > 0 ? n_prealloc : 1)
 	{
 	}
 
-	// Çağıranın verdiği tampon. free() edilmez; boot varsayılanları için.
-	DynamicSparseLayer(ParamLayer *parent, void *storage, int n_slots) : ParamLayer(parent),
-		_n_slots(n_slots), _n_grow(0), _n_prealloc(n_slots), _owned(false)
-	{
-		static_assert(sizeof(Slot) == 8, "Slot boyutu runtime_default_mem ile aynı olmalı");
-		Slot *slots = static_cast<Slot *>(storage);
-
-		for (int i = 0; i < n_slots; i++) {
-			slots[i] = {UINT16_MAX, param_value_u{}};
-		}
-
-		_slots.store(slots);
-	}
-
+	// PX4 02ecfd4: yok edici kilit alır, okuyucuya boş katman yayınlar, sonra
+	// free() eder. NuttX'te free() kesme kapalıyken çağrılamaz.
 	virtual ~DynamicSparseLayer()
 	{
-		if (!_owned) {
-			return;
+		Slot *slots = nullptr;
+
+		{
+			const AtomicTransaction transaction;
+			slots = _slots.load();
+			_slots.store(nullptr);
+			_next_slot = 0;
+			_n_slots = 0;
 		}
 
-		Slot *slots = _slots.load();
-		_slots.store(nullptr);
-		_next_slot = 0;
-		_n_slots = 0;
 		free(slots);
 	}
 
@@ -163,11 +152,13 @@ public:
 
 	int size() const override
 	{
+		const AtomicTransaction transaction;
 		return _next_slot;
 	}
 
 	int byteSize() const override
 	{
+		const AtomicTransaction transaction;
 		return _n_slots * sizeof(Slot);
 	}
 
@@ -291,6 +282,5 @@ private:
 	int _n_slots = 0;
 	const int _n_grow;
 	const int _n_prealloc;
-	const bool _owned;
 	px4::atomic<Slot *> _slots{nullptr};
 };

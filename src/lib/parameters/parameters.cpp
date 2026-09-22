@@ -101,11 +101,12 @@ static px4::AtomicBitset<param_info_count> params_active;  // params found
 static px4::AtomicBitset<param_info_count> params_unsaved;
 
 static ConstLayer firmware_defaults;
-// Board + airframe set-default'ları (~72). Heap'te duran kopya _grow sırasında
-// free() edilip aynı adreste yeniden kullanılıyordu; bu tampon BSS'te, free edilemez.
-// Slot 8 bayt (DynamicSparseLayer static_assert).
-static uint64_t runtime_default_mem[160];
-static DynamicSparseLayer runtime_defaults{&firmware_defaults, runtime_default_mem, 160};
+// Board + airframe set-default'ları (~72, ölçülen tavan 160). Heap'teki kopya
+// _grow sırasında free() edilip aynı adreste yeniden kullanılıyordu.
+// Sabit dizi: malloc/free yok. Fonksiyon içi static de yok; NuttX'te o yol
+// __aeabi_atexit çağırır (CONFIG_LIBC_MAX_EXITFUNS=1) ve kartı boot'ta düşürür.
+// Slot boyutu derleyiciden gelir (kartta 8, SITL'de 16 bayt).
+static StaticSparseLayer<160> runtime_defaults{&firmware_defaults};
 DynamicSparseLayer user_config{&runtime_defaults};
 
 /** parameter update topic handle */

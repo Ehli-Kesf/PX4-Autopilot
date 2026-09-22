@@ -117,6 +117,7 @@ public:
 
 	int size() const override
 	{
+		const AtomicTransaction transaction;
 		return _next_slot;
 	}
 
