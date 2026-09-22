@@ -35,23 +35,30 @@
 
 #include "ParamLayer.h"
 
+#include <string.h>
+
 #include <px4_platform_common/atomic.h>
+#include <px4_platform_common/log.h>
 
 class DynamicSparseLayer : public ParamLayer
 {
 public:
+	// Heap'li kurucu. malloc kurucuda değil, ilk store()'da: statik kurucular
+	// SRAM4 eklenmeden önce çalışıyor.
 	DynamicSparseLayer(ParamLayer *parent, int n_prealloc = 32, int n_grow = 4) : ParamLayer(parent),
-		_n_slots(n_prealloc), _n_grow(n_grow)
+		_n_slots(0), _n_grow(n_grow > 0 ? n_grow : 1), _n_prealloc(n_prealloc > 0 ? n_prealloc : 1),
+		_owned(true)
 	{
-		Slot *slots = (Slot *)malloc(sizeof(Slot) * n_prealloc);
+	}
 
-		if (slots == nullptr) {
-			PX4_ERR("Failed to allocate memory for dynamic sparse layer");
-			_n_slots = 0;
-			return;
-		}
+	// Çağıranın verdiği tampon. free() edilmez; boot varsayılanları için.
+	DynamicSparseLayer(ParamLayer *parent, void *storage, int n_slots) : ParamLayer(parent),
+		_n_slots(n_slots), _n_grow(0), _n_prealloc(n_slots), _owned(false)
+	{
+		static_assert(sizeof(Slot) == 8, "Slot boyutu runtime_default_mem ile aynı olmalı");
+		Slot *slots = static_cast<Slot *>(storage);
 
-		for (int i = 0; i < _n_slots; i++) {
+		for (int i = 0; i < n_slots; i++) {
 			slots[i] = {UINT16_MAX, param_value_u{}};
 		}
 
@@ -60,35 +67,47 @@ public:
 
 	virtual ~DynamicSparseLayer()
 	{
-		if (_slots.load()) {
-			free(_slots.load());
+		if (!_owned) {
+			return;
 		}
+
+		Slot *slots = _slots.load();
+		_slots.store(nullptr);
+		_next_slot = 0;
+		_n_slots = 0;
+		free(slots);
 	}
 
 	bool store(param_t param, param_value_u value) override
 	{
 		AtomicTransaction transaction;
-		Slot *slots = _slots.load();
 
-		const int index = _getIndex(param);
-
-		if (index < _next_slot) { // already exists
-			slots[index].value = value;
-
-		} else if (_next_slot < _n_slots) {
-			slots[_next_slot++] = {param, value};
-			_sort();
-
-		} else {
-			if (!_grow(transaction)) {
+		// _grow() malloc için kilidi bırakır; o pencerede başka bir yazıcı
+		// aynı parametreyi eklemiş veya yeri doldurmuş olabilir. Büyütme
+		// sonrası kararı sıfırdan veririz (PX4 02ecfd4).
+		while (true) {
+			if (_slots.load() == nullptr && !_alloc_initial(transaction)) {
 				return false;
 			}
 
-			_slots.load()[_next_slot++] = {param, value};
-			_sort();
-		}
+			Slot *slots = _slots.load();
+			const int index = _getIndex(param);
 
-		return true;
+			if (index < _next_slot) {
+				slots[index].value = value;
+				return true;
+			}
+
+			if (_next_slot < _n_slots) {
+				slots[_next_slot++] = {param, value};
+				_sort();
+				return true;
+			}
+
+			if (!_grow(transaction)) {
+				return false;
+			}
+		}
 	}
 
 	bool contains(param_t param) const override
@@ -191,43 +210,73 @@ private:
 		return _next_slot;
 	}
 
-	bool _grow(AtomicTransaction &transaction)
+	bool _alloc_initial(AtomicTransaction &transaction)
 	{
-		if (_n_slots == 0) {
+		if (_slots.load() != nullptr) {
+			return true;
+		}
+
+		const int n = _n_prealloc;
+		transaction.unlock();
+		Slot *slots = (Slot *)malloc(sizeof(Slot) * n);
+		transaction.lock();
+
+		if (slots == nullptr) {
+			PX4_ERR("param layer initial alloc %d failed", n);
 			return false;
 		}
 
-		int max_retries = 5;
+		// Kilidi bırakırken başka bir yazıcı aynı tamponu kurmuş olabilir.
+		if (_slots.load() != nullptr) {
+			free(slots);
+			return true;
+		}
 
-		// As malloc uses locking, so we need to re-enable IRQ's during malloc/free and
-		// then atomically exchange the buffer
-		while (_next_slot >= _n_slots && max_retries-- > 0) {
-			Slot *previous_slots = nullptr;
-			Slot *new_slots = nullptr;
+		for (int i = 0; i < n; i++) {
+			slots[i] = {UINT16_MAX, param_value_u{}};
+		}
 
-			do {
-				previous_slots = _slots.load();
-				transaction.unlock();
+		_slots.store(slots);
+		_n_slots = n;
+		return true;
+	}
 
-				if (new_slots) {
-					free(new_slots);
-				}
+	bool _grow(AtomicTransaction &transaction)
+	{
+		if (_n_slots == 0 || _n_grow == 0) {
+			return false;
+		}
 
-				new_slots = (Slot *) malloc(sizeof(Slot) * (_n_slots + _n_grow));
-				transaction.lock();
+		// PX4 02ecfd4: işaretçi CAS yerine kapasite karşılaştırması.
+		// Eski döngü `compare_exchange(&_slots, new)` kullanıyordu; malloc
+		// az önce serbest bırakılan adresi geri verince CAS "değişmedi"
+		// sanıp yürürlükteki tamponu free() ediyordu (ABA). Ölçüm:
+		// runtime_defaults 0x38008240 hâlâ _slots'ta ama heap tahsisli=0,
+		// aynı boyutta malloc aynı adresi döndürdü.
+		while (_next_slot >= _n_slots) {
+			const int alloc_n_slots = _n_slots;
 
-				if (new_slots == nullptr) {
-					return false;
-				}
+			transaction.unlock();
+			Slot *new_slots = (Slot *) malloc(sizeof(Slot) * (alloc_n_slots + _n_grow));
+			transaction.lock();
 
-			} while (!_slots.compare_exchange(&previous_slots, new_slots));
+			if (new_slots == nullptr) {
+				return false;
+			}
 
+			if (_n_slots != alloc_n_slots) {
+				free(new_slots);
+				continue;
+			}
+
+			Slot *previous_slots = _slots.load();
 			memcpy(new_slots, previous_slots, sizeof(Slot) * _n_slots);
 
 			for (int i = _n_slots; i < _n_slots + _n_grow; i++) {
 				new_slots[i] = {UINT16_MAX, param_value_u{}};
 			}
 
+			_slots.store(new_slots);
 			_n_slots += _n_grow;
 
 			transaction.unlock();
@@ -241,5 +290,7 @@ private:
 	int _next_slot = 0;
 	int _n_slots = 0;
 	const int _n_grow;
+	const int _n_prealloc;
+	const bool _owned;
 	px4::atomic<Slot *> _slots{nullptr};
 };

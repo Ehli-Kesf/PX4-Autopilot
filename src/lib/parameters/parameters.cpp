@@ -101,7 +101,11 @@ static px4::AtomicBitset<param_info_count> params_active;  // params found
 static px4::AtomicBitset<param_info_count> params_unsaved;
 
 static ConstLayer firmware_defaults;
-static DynamicSparseLayer runtime_defaults{&firmware_defaults};
+// Board + airframe set-default'ları (~72). Heap'te duran kopya _grow sırasında
+// free() edilip aynı adreste yeniden kullanılıyordu; bu tampon BSS'te, free edilemez.
+// Slot 8 bayt (DynamicSparseLayer static_assert).
+static uint64_t runtime_default_mem[160];
+static DynamicSparseLayer runtime_defaults{&firmware_defaults, runtime_default_mem, 160};
 DynamicSparseLayer user_config{&runtime_defaults};
 
 /** parameter update topic handle */
